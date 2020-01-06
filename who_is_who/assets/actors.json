@@ -1,0 +1,82 @@
+[
+    {
+      "name": "Bradley Cooper",
+      "path": "Bradley_Cooper.jpeg"
+    },
+    {
+      "name": "Chris Hemsworth",
+      "path": "Chris_Hemsworth.jpg"
+    },
+    {
+      "name": "Chris Evans",
+      "path": "chrisevans.jpg"
+    },
+    {
+      "name": "Daisy Ridley",
+      "path": "Daisy_Ridley_by.jpg"
+    },
+    {
+      "name": "Dwayne Johnson",
+      "path": "Dwayne_Johnson.jpg"
+    },
+    {
+      "name": "Emma Stone",
+      "path": "Emma_Stone.jpg"
+    },
+    {
+      "name": "Gal Gadot",
+      "path": "Gal_Gadot.jpg"
+    },
+    {
+      "name": "Henry Cavill",
+      "path": "Henry_Cavill.jpg"
+    },
+    {
+      "name": "Jennifer Lawrence",
+      "path": "Jennifer_Lawrence.jpg"
+    },
+    {
+      "name": "Johnny Depp",
+      "path": "johnny_depp.jpg"
+    },
+    {
+      "name": "Leonardo Di Caprio",
+      "path": "Leonardo_Di_Caprio.jpg"
+    },
+    {
+      "name": "Margot Robbie",
+      "path": "margot.jpg"
+    },
+    {
+      "name": "Nicolas Cage",
+      "path": "Nicolas_Cage.jpg"
+    },
+    {
+      "name": "Robert Downey Jr",
+      "path": "robert.jpg"
+    },
+    {
+      "name": "Ryan Reynolds",
+      "path": "ryan-reynolds.jpg"
+    },
+    {
+      "name": "Ryan Gosling",
+      "path": "Ryan_Gosling.jpg"
+    },
+    {
+      "name": "Samuel L. Jackson",
+      "path": "Samuel_L._Jackson.jpg"
+    },
+    {
+      "name": "Scarlett Johansson",
+      "path": "Scarlett_Johansson.jpg"
+    },
+    {
+      "name": "Tom Holland",
+      "path": "Tom_Holland.jpg"
+    },
+    {
+      "name": "Will Smith",
+      "path": "Will_Smith.jpg"
+    }
+  ]
