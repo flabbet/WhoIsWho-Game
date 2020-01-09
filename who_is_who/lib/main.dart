@@ -7,6 +7,7 @@ import 'package:flip_card/flip_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:who_is_who/popups.dart';
@@ -52,6 +53,7 @@ class _GameHomePageState extends State<GameHomePage> {
   bool tappedAgain = false;
   GlobalKey<FlipCardState> cardKey = GlobalKey<FlipCardState>();
   String deckPath;
+  bool deckIsLoading = false;
 
   @override
   void initState() {
@@ -88,7 +90,9 @@ class _GameHomePageState extends State<GameHomePage> {
         cardKey.currentState.toggleCard();
       }
       tappedAgain = false;
+      deckIsLoading = false;
       stopwatch.start();
+      stopwatch.reset();
       updateStopwatch();
     });
   }
@@ -194,11 +198,15 @@ class _GameHomePageState extends State<GameHomePage> {
   }
 
   void getDeckFromUrl(String url) async {
+    setState(() {
+          deckIsLoading = true;
+    });
     var path = (await getTemporaryDirectory()).path;
-    File file = await downloadDeck(url, path, "deck1.deck");
+    File file = await downloadDeck(url, path, "deck.deck");
     String rootDirName = decompressDeck(await file.readAsBytes(), path);
     deckPath = "$path/out/$rootDirName";
     loadDeckJson("${deckPath}data.json");
+    deckIsLoading = false;
   }
 
   @override
@@ -219,7 +227,7 @@ class _GameHomePageState extends State<GameHomePage> {
         ],
       ),
       body: Center(
-        child: Column(
+        child: deckIsLoading ? CircularProgressIndicator() : _questionsCount == 0 ? Text("Select deck to start", style: TextStyle(fontSize: 34),) :Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             LinearProgressIndicator(value: _elapsedTime),
@@ -273,7 +281,7 @@ class _GameHomePageState extends State<GameHomePage> {
                     children: <Widget>[
                       Text(
                           tappedAgain ? cardItems[currentPersonIndex].name : "",
-                          style: TextStyle(fontSize: 34, color: Colors.white)),
+                          style: TextStyle(fontSize: 34, color: Colors.white), textAlign: TextAlign.center),
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
@@ -281,7 +289,7 @@ class _GameHomePageState extends State<GameHomePage> {
                                 ? cardItems[currentPersonIndex].description
                                 : "",
                             style: TextStyle(fontSize: 22,
-                                color: Colors.white70)),
+                                color: Colors.white70), textAlign: TextAlign.center),
                       )
                     ],
                   ),
