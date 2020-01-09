@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:who_is_who/popups.dart';
+import 'package:http/http.dart' as http;
 
 import 'JSONLoader.dart';
-import 'Person.dart';
+import 'CardItem.dart';
 
 void main() => runApp(WhoIsWhoApp());
 
@@ -36,7 +41,7 @@ class GameHomePage extends StatefulWidget {
 
 class _GameHomePageState extends State<GameHomePage> {
   static const int SecondsPerQuestion = 10;
-  List<Person> people = List<Person>();
+  List<CardItem> cardItems = List<CardItem>();
   int currentPersonIndex = 0;
   int _questionsCount = 0;
   int goodAnswers = 0;
@@ -45,27 +50,40 @@ class _GameHomePageState extends State<GameHomePage> {
   double _elapsedTime = 0;
   bool tappedAgain = false;
   GlobalKey<FlipCardState> cardKey = GlobalKey<FlipCardState>();
+  String deckPath;
 
   @override
   void initState() {
     setState(() {
-      JSONLoader.loadJSON().then((json) {
-        people = JSONLoader.shuffle(JSONLoader.toPersonList(jsonDecode(json)));
-        _questionsCount = people.length;
-      });
+      getDeckFromUrl(
+          "https://github.com/flabbet/WhoIsWho-Game/blob/master/decks/PolishMonarchs.deck?raw=true");
     });
-
-    Timer(Duration(milliseconds: 10), updateStopwatch);
-    stopwatch.start();
+    if (_questionsCount > 0) {
+      Timer(Duration(milliseconds: 10), updateStopwatch);
+      stopwatch.start();
+    }
     super.initState();
+  }
+
+  void loadDeckJson(String path) {
+    JSONLoader.loadJSON(path).then((json) {
+      cardItems =
+          JSONLoader.shuffle(JSONLoader.toCardItemList(jsonDecode(json)));
+      _questionsCount = cardItems.length;
+    });
+    restartGame();
   }
 
   void restartGame() {
     setState(() {
-      people = JSONLoader.shuffle(people);
+      cardItems = JSONLoader.shuffle(cardItems);
       currentPersonIndex = 0;
       goodAnswers = 0;
       _elapsedTime = 0;
+      if(tappedAgain){
+        cardKey.currentState.toggleCard();
+      }
+      tappedAgain = false;
       stopwatch.start();
       updateStopwatch();
     });
@@ -139,13 +157,60 @@ class _GameHomePageState extends State<GameHomePage> {
     });
   }
 
+  Future<File> downloadDeck(String url, String path, String filename) async {
+    http.Client client = new http.Client();
+    var req = await client.get(Uri.parse(url));
+    var bytes = req.bodyBytes;
+    File file = new File('$path/$filename');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
+  String decompressDeck(List<int> bytes, String path) {
+    var archive = ZipDecoder().decodeBytes(bytes);
+    String rootDirName = archive[0].name;
+    for (final file in archive) {
+      final filename = file.name;
+      if (file.isFile) {
+        final data = file.content as List<int>;
+        File(path + '/out/' + filename)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(data);
+      } else {
+        Directory(path + '/out/' + filename)..create(recursive: true);
+      }
+    }
+    return rootDirName;
+  }
+
+  Future<List<int>> openDeckFile() async {
+    var file = File((await getTemporaryDirectory()).path);
+    return file.readAsBytes();
+  }
+
+  void getDeckFromUrl(String url) async {
+    var path = (await getTemporaryDirectory()).path;
+    File file = await downloadDeck(url, path, "deck1.deck");
+    String rootDirName = decompressDeck(await file.readAsBytes(), path);
+    deckPath = "$path/out/$rootDirName";
+    loadDeckJson("${deckPath}data.json");
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
-          FlatButton(child: Text("Open Deck", style: TextStyle(color: Colors.white)), onPressed: (){})
+          FlatButton(
+              child: Text("Open Deck", style: TextStyle(color: Colors.white)),
+              onPressed: () {
+                showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Popups.openDeckPopup(context, getDeckFromUrl);
+                    });
+              })
         ],
       ),
       body: Center(
@@ -173,10 +238,10 @@ class _GameHomePageState extends State<GameHomePage> {
                     children: <Widget>[
                       ClipRRect(
                           borderRadius: BorderRadius.circular(8.0),
-                          child: people.length > 0
-                              ? Image.asset(
-                                  "assets/images/" +
-                                      people[currentPersonIndex].fileName,
+                          child: cardItems.length > 0
+                              ? Image.file(File(
+                                  deckPath + "images/" +
+                                      cardItems[currentPersonIndex].fileName),
                                   width: 300,
                                   height: 450,
                                   fit: BoxFit.cover)
@@ -201,10 +266,17 @@ class _GameHomePageState extends State<GameHomePage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
-                      Text(tappedAgain ? people[currentPersonIndex].name : "",
+                      Text(
+                          tappedAgain ? cardItems[currentPersonIndex].name : "",
                           style: TextStyle(fontSize: 34, color: Colors.white)),
-                      Text(tappedAgain ? people[currentPersonIndex].description : "",
-                      style: TextStyle(fontSize: 24, color: Colors.white70))
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                            tappedAgain
+                                ? cardItems[currentPersonIndex].description
+                                : "",
+                            style: TextStyle(fontSize: 22, color: Colors.white70)),
+                      )
                     ],
                   ),
                 ),
@@ -218,7 +290,8 @@ class _GameHomePageState extends State<GameHomePage> {
                         onPressed: () {
                           _switchQuestion(false);
                         },
-                        child: Text("Next question", style: TextStyle(fontSize: 18)),
+                        child: Text("Next question",
+                            style: TextStyle(fontSize: 18)),
                         color: Colors.blue,
                         textColor: Colors.white,
                       )

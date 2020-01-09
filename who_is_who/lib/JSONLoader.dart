@@ -1,23 +1,21 @@
+import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter/services.dart';
-
-import 'Person.dart';
+import 'CardItem.dart';
 
 class JSONLoader{
 
-  static const String JSONPath = "assets/actors.json";
-
-static Future<String> loadJSON() async{
-    return await rootBundle.loadString(JSONPath);
+static Future<String> loadJSON(String path) async{
+  var file = File(path);
+    return await file.readAsString();
 }
 
-static List<Person> toPersonList(List<dynamic> list){
-  List<Person> people = List<Person>();
+static List<CardItem> toCardItemList(List<dynamic> list){
+  List<CardItem> items = List<CardItem>();
   for (var i = 0; i < list.length; i++){
-    people.add(Person(list[i]["name"], list[i]["path"], list[i]["description"]));
+    items.add(CardItem(list[i]["name"], list[i]["path"], list[i]["description"]));
   }
-  return people;
+  return items;
 }
 
 static List shuffle(List items){
