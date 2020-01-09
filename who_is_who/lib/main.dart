@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:who_is_who/popups.dart';
 import 'package:http/http.dart' as http;
@@ -284,13 +285,13 @@ class _GameHomePageState extends State<GameHomePage> {
                           style: TextStyle(fontSize: 34, color: Colors.white), textAlign: TextAlign.center),
                       Padding(
                         padding: const EdgeInsets.all(8.0),
-                        child: Text(
+                        child: MarkdownBody(
+                          styleSheet: MarkdownStyleSheet.fromTheme(ThemeData(textTheme: Theme.of(context).textTheme.apply(bodyColor: Colors.white70, fontSizeDelta: 8))),
+                          data:
                             tappedAgain
                                 ? cardItems[currentPersonIndex].description
                                 : "",
-                            style: TextStyle(fontSize: 22,
-                                color: Colors.white70), textAlign: TextAlign.center),
-                      )
+                      ))
                     ],
                   ),
                 ),

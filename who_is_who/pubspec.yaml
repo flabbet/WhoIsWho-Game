@@ -27,6 +27,7 @@ dependencies:
   archive: ^2.0.11
   http: ^0.12.0+4
   path_provider: ^1.5.1
+  flutter_markdown: ^0.3.2
 
 dev_dependencies:
   flutter_test:
