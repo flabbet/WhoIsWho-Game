@@ -7,6 +7,7 @@ import 'package:flip_card/flip_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:who_is_who/popups.dart';
 import 'package:http/http.dart' as http;
@@ -54,16 +55,19 @@ class _GameHomePageState extends State<GameHomePage> {
 
   @override
   void initState() {
-    setState(() {
-      getDeckFromUrl(
-          "https://github.com/flabbet/WhoIsWho-Game/blob/master/decks/PolishMonarchs.deck?raw=true");
-    });
+    SchedulerBinding.instance.addPostFrameCallback((_) =>
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return Popups.openDeckPopup(context, getDeckFromUrl);
+            }));
     if (_questionsCount > 0) {
       Timer(Duration(milliseconds: 10), updateStopwatch);
       stopwatch.start();
     }
     super.initState();
   }
+
 
   void loadDeckJson(String path) {
     JSONLoader.loadJSON(path).then((json) {
@@ -80,7 +84,7 @@ class _GameHomePageState extends State<GameHomePage> {
       currentPersonIndex = 0;
       goodAnswers = 0;
       _elapsedTime = 0;
-      if(tappedAgain){
+      if (tappedAgain) {
         cardKey.currentState.toggleCard();
       }
       tappedAgain = false;
@@ -177,7 +181,8 @@ class _GameHomePageState extends State<GameHomePage> {
           ..createSync(recursive: true)
           ..writeAsBytesSync(data);
       } else {
-        Directory(path + '/out/' + filename)..create(recursive: true);
+        Directory(path + '/out/' + filename)
+          ..create(recursive: true);
       }
     }
     return rootDirName;
@@ -240,11 +245,11 @@ class _GameHomePageState extends State<GameHomePage> {
                           borderRadius: BorderRadius.circular(8.0),
                           child: cardItems.length > 0
                               ? Image.file(File(
-                                  deckPath + "images/" +
-                                      cardItems[currentPersonIndex].fileName),
-                                  width: 300,
-                                  height: 450,
-                                  fit: BoxFit.cover)
+                              deckPath + "images/" +
+                                  cardItems[currentPersonIndex].fileName),
+                              width: 300,
+                              height: 450,
+                              fit: BoxFit.cover)
                               : null),
                       FlatButton(
                         child: const Text("Do you know who is that?"),
@@ -275,7 +280,8 @@ class _GameHomePageState extends State<GameHomePage> {
                             tappedAgain
                                 ? cardItems[currentPersonIndex].description
                                 : "",
-                            style: TextStyle(fontSize: 22, color: Colors.white70)),
+                            style: TextStyle(fontSize: 22,
+                                color: Colors.white70)),
                       )
                     ],
                   ),
@@ -286,34 +292,34 @@ class _GameHomePageState extends State<GameHomePage> {
               alignment: MainAxisAlignment.center,
               children: tappedAgain
                   ? <Widget>[
-                      FlatButton(
-                        onPressed: () {
-                          _switchQuestion(false);
-                        },
-                        child: Text("Next question",
-                            style: TextStyle(fontSize: 18)),
-                        color: Colors.blue,
-                        textColor: Colors.white,
-                      )
-                    ]
+                FlatButton(
+                  onPressed: () {
+                    _switchQuestion(false);
+                  },
+                  child: Text("Next question",
+                      style: TextStyle(fontSize: 18)),
+                  color: Colors.blue,
+                  textColor: Colors.white,
+                )
+              ]
                   : <Widget>[
-                      FlatButton(
-                        color: Colors.red,
-                        textColor: Colors.white,
-                        child: Text("No"),
-                        onPressed: () {
-                          _switchQuestion(false);
-                        },
-                      ),
-                      FlatButton(
-                        color: Colors.green,
-                        textColor: Colors.white,
-                        child: Text("Yes"),
-                        onPressed: () {
-                          _switchQuestion(true);
-                        },
-                      )
-                    ],
+                FlatButton(
+                  color: Colors.red,
+                  textColor: Colors.white,
+                  child: Text("No"),
+                  onPressed: () {
+                    _switchQuestion(false);
+                  },
+                ),
+                FlatButton(
+                  color: Colors.green,
+                  textColor: Colors.white,
+                  child: Text("Yes"),
+                  onPressed: () {
+                    _switchQuestion(true);
+                  },
+                )
+              ],
             )
           ],
         ),
