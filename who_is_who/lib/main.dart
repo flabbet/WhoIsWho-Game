@@ -16,7 +16,7 @@ class WhoIsWhoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Who is who',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -145,7 +145,7 @@ class _GameHomePageState extends State<GameHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
-          FlatButton(child: Text("Open Deck"), onPressed: (){})
+          FlatButton(child: Text("Open Deck", style: TextStyle(color: Colors.white)), onPressed: (){})
         ],
       ),
       body: Center(
