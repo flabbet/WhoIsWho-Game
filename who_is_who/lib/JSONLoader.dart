@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/services.dart';
@@ -17,7 +15,7 @@ static Future<String> loadJSON() async{
 static List<Person> toPersonList(List<dynamic> list){
   List<Person> people = List<Person>();
   for (var i = 0; i < list.length; i++){
-    people.add(Person(list[i]["name"], list[i]["path"]));
+    people.add(Person(list[i]["name"], list[i]["path"], list[i]["description"]));
   }
   return people;
 }

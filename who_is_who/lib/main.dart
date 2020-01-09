@@ -144,6 +144,9 @@ class _GameHomePageState extends State<GameHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: <Widget>[
+          FlatButton(child: Text("Open Deck"), onPressed: (){})
+        ],
       ),
       body: Center(
         child: Column(
@@ -200,6 +203,8 @@ class _GameHomePageState extends State<GameHomePage> {
                     children: <Widget>[
                       Text(tappedAgain ? people[currentPersonIndex].name : "",
                           style: TextStyle(fontSize: 34, color: Colors.white)),
+                      Text(tappedAgain ? people[currentPersonIndex].description : "",
+                      style: TextStyle(fontSize: 24, color: Colors.white70))
                     ],
                   ),
                 ),
