@@ -62,7 +62,7 @@ class _GameHomePageState extends State<GameHomePage> {
         showDialog(
             context: context,
             builder: (BuildContext context) {
-              return Popups.openDeckPopup(context, getDeckFromUrl);
+              return Popups.openDeckPopup(context, getDeck);
             }));
     if (_questionsCount > 0) {
       Timer(Duration(milliseconds: 10), updateStopwatch);
@@ -198,14 +198,19 @@ class _GameHomePageState extends State<GameHomePage> {
     return file.readAsBytes();
   }
 
-  void getDeckFromUrl(String url) async {
+  void getDeck(String uri) async {
     setState(() {
           deckIsLoading = true;
     });
     var path = (await getTemporaryDirectory()).path;
-    File file = await downloadDeck(url, path, "deck.deck");
-    String rootDirName = decompressDeck(await file.readAsBytes(), path);
-    deckPath = "$path/out/$rootDirName";
+    if(uri.startsWith("http")) {
+      File file = await downloadDeck(uri, path, "deck.deck");
+      deckPath = "$path/out/${decompressDeck(await file.readAsBytes(), path)}";
+    }
+    else if(uri.startsWith("/")){
+      deckPath = "$path/out/${decompressDeck(await File(uri).readAsBytes(), path)}";
+    }
+
     loadDeckJson("${deckPath}data.json");
     deckIsLoading = false;
   }
@@ -222,7 +227,7 @@ class _GameHomePageState extends State<GameHomePage> {
                 showDialog(
                     context: context,
                     builder: (BuildContext context) {
-                      return Popups.openDeckPopup(context, getDeckFromUrl);
+                      return Popups.openDeckPopup(context, getDeck);
                     });
               })
         ],
