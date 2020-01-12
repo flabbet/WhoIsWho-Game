@@ -87,7 +87,7 @@ class _GameHomePageState extends State<GameHomePage> {
       currentPersonIndex = 0;
       goodAnswers = 0;
       _elapsedTime = 0;
-      if (tappedAgain) {
+      if (tappedAgain && cardKey.currentState != null) {
         cardKey.currentState.toggleCard();
       }
       tappedAgain = false;
@@ -134,6 +134,7 @@ class _GameHomePageState extends State<GameHomePage> {
       _elapsedTime = 0;
       showDialog(
           context: context,
+          barrierDismissible: false,
           builder: (BuildContext context) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
@@ -177,7 +178,7 @@ class _GameHomePageState extends State<GameHomePage> {
 
   String decompressDeck(List<int> bytes, String path) {
     var archive = ZipDecoder().decodeBytes(bytes);
-    String rootDirName = archive[0].name;
+    String rootDirName = archive[0].name.split("/")[0];
     for (final file in archive) {
       final filename = file.name;
       if (file.isFile) {
@@ -190,7 +191,7 @@ class _GameHomePageState extends State<GameHomePage> {
           ..create(recursive: true);
       }
     }
-    return rootDirName;
+    return rootDirName + "/";
   }
 
   Future<List<int>> openDeckFile() async {
@@ -203,14 +204,14 @@ class _GameHomePageState extends State<GameHomePage> {
           deckIsLoading = true;
     });
     var path = (await getTemporaryDirectory()).path;
+    File file;
     if(uri.startsWith("http")) {
-      File file = await downloadDeck(uri, path, "deck.deck");
-      deckPath = "$path/out/${decompressDeck(await file.readAsBytes(), path)}";
+      file = await downloadDeck(uri, path, "deck.deck");
     }
     else if(uri.startsWith("/")){
-      deckPath = "$path/out/${decompressDeck(await File(uri).readAsBytes(), path)}";
+      file = File(uri);
     }
-
+    deckPath = "$path/out/${decompressDeck(await file.readAsBytes(), path)}";
     loadDeckJson("${deckPath}data.json");
     deckIsLoading = false;
   }
