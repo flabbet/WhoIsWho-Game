@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 class Popups {
   static AlertDialog openDeckPopup(BuildContext context, Function onOpenDeck) {
     final controller = TextEditingController();
+    final accessCodeController = TextEditingController();
     String finalUri;
     return AlertDialog(
       shape: RoundedRectangleBorder(
@@ -64,6 +63,18 @@ class Popups {
               )
             ],
           ),
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Text("Or Enter organization access code"),
+          ),
+          TextField(
+            controller: accessCodeController,
+              decoration: InputDecoration(hintText: "8 digit access code"),
+              maxLength: 8,
+            onChanged: (String text){
+              finalUri = text;
+            },
+          ),
           FlatButton(
               color: Colors.green,
               textColor: Colors.white,
@@ -87,6 +98,53 @@ class Popups {
           ))
         ],
       ),
+    );
+  }
+  static AlertDialog openNewOrganizationPopup(BuildContext context){
+    final _formKey = GlobalKey<FormState>();
+
+    return AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text("New Organization"),
+            Form(
+              key: _formKey,
+              child: Column(
+                  children: <Widget>[
+                    TextFormField(
+                      decoration: InputDecoration(hintText: "Enter organization name"),
+                      validator: (value){
+                        if(value.isEmpty){
+                          return "Enter organization name";
+                        }
+                        return null;
+                      }
+                    ),
+                    TextFormField(
+                      decoration: InputDecoration(hintText: "Enter organization deck url"),
+                      validator: (value){
+                        if(value.isEmpty){
+                          return "Please enter organization deck url";
+                        }
+                        else if (!Uri.parse(value).isAbsolute){
+                          return "Please enter correct url";
+                        }
+                        return null;
+                      }
+                    ),
+                    FlatButton(
+                      child: Text("Submit"),
+                      onPressed: (){
+                        if (_formKey.currentState.validate()){
+
+                        }
+                      },
+                    )
+                  ],
+              ))
+          ],
+        ),
     );
   }
 }

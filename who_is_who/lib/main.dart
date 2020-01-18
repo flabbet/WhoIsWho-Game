@@ -13,6 +13,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:who_is_who/popups.dart';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import 'JSONLoader.dart';
 import 'CardItem.dart';
@@ -44,6 +45,7 @@ class GameHomePage extends StatefulWidget {
 
 class _GameHomePageState extends State<GameHomePage> {
   static const int SecondsPerQuestion = 10;
+  String middleText = "Select deck to start";
   List<CardItem> cardItems = List<CardItem>();
   int currentPersonIndex = 0;
   int _questionsCount = 0;
@@ -175,6 +177,15 @@ class _GameHomePageState extends State<GameHomePage> {
     await file.writeAsBytes(bytes);
     return file;
   }
+  
+  Future<String> getDeckUrlFromCode(String accessCode) async{
+    Dio dio = new Dio();
+    FormData form = FormData.fromMap({
+      "access_code": accessCode
+    });
+    var req = await dio.post("http://138.68.78.158:8080/org/getDeck",data: form);
+    return req.data;
+  }
 
   String decompressDeck(List<int> bytes, String path) {
     var archive = ZipDecoder().decodeBytes(bytes);
@@ -203,17 +214,31 @@ class _GameHomePageState extends State<GameHomePage> {
     setState(() {
           deckIsLoading = true;
     });
-    var path = (await getTemporaryDirectory()).path;
-    File file;
-    if(uri.startsWith("http")) {
-      file = await downloadDeck(uri, path, "deck.deck");
+    try {
+      var path = (await getTemporaryDirectory()).path;
+      File file;
+      if (uri.startsWith("http")) {
+        file = await downloadDeck(uri, path, "deck.deck");
+      }
+      else if (uri.startsWith("/")) {
+        file = File(uri);
+      }
+      else if (uri.length == 8) {
+        file =
+        await downloadDeck(await getDeckUrlFromCode(uri), path, "deck.deck");
+      }
+      deckPath = "$path/out/${decompressDeck(await file.readAsBytes(), path)}";
+      loadDeckJson("${deckPath}data.json");
+      deckIsLoading = false;
     }
-    else if(uri.startsWith("/")){
-      file = File(uri);
+    catch(ex) {
+      setState(() {
+        deckIsLoading = false;
+        String errorMessage = ex.toString().replaceAll("%20", " ");
+        middleText = errorMessage;
+        print(errorMessage);
+      });
     }
-    deckPath = "$path/out/${decompressDeck(await file.readAsBytes(), path)}";
-    loadDeckJson("${deckPath}data.json");
-    deckIsLoading = false;
   }
 
   @override
@@ -222,6 +247,16 @@ class _GameHomePageState extends State<GameHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
+          FlatButton(
+            child: Text("New Organization", style: TextStyle(color: Colors.white),),
+            onPressed: (){
+              showDialog(context: context,
+                  builder: (BuildContext context){
+                return Popups.openNewOrganizationPopup(context);
+              }
+              );
+            },
+          ),
           FlatButton(
               child: Text("Open Deck", style: TextStyle(color: Colors.white)),
               onPressed: () {
@@ -234,7 +269,7 @@ class _GameHomePageState extends State<GameHomePage> {
         ],
       ),
       body: Center(
-        child: deckIsLoading ? CircularProgressIndicator() : _questionsCount == 0 ? Text("Select deck to start", style: TextStyle(fontSize: 34),) :Column(
+        child: deckIsLoading ? CircularProgressIndicator() : _questionsCount == 0 ? Text(middleText, style: TextStyle(fontSize: 34),) :Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             LinearProgressIndicator(value: _elapsedTime),
