@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -47,10 +48,10 @@ class Popups {
                   },
                 ),
               ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: Text("or", style: TextStyle(fontSize: 14)),
-                ),
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Text("or", style: TextStyle(fontSize: 14)),
+              ),
               Expanded(
                 child: RaisedButton(
                   child: Text("Select file"),
@@ -69,9 +70,9 @@ class Popups {
           ),
           TextField(
             controller: accessCodeController,
-              decoration: InputDecoration(hintText: "8 digit access code"),
-              maxLength: 8,
-            onChanged: (String text){
+            decoration: InputDecoration(hintText: "8 digit access code"),
+            maxLength: 8,
+            onChanged: (String text) {
               finalUri = text;
             },
           ),
@@ -80,71 +81,113 @@ class Popups {
               textColor: Colors.white,
               child: Text("Open deck"),
               onPressed: () {
-                if(finalUri != null && finalUri.trim() != "") {
+                if (finalUri != null && finalUri.trim() != "") {
                   onOpenDeck(finalUri);
                   Navigator.of(context).pop();
                 }
               }),
-          RichText(text: TextSpan(
-            style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-            children: [
-              TextSpan(text: "Tip: If you want to create your own deck, follow"),
-              TextSpan(
-                text: " this guide",
-                style: TextStyle(color: Colors.blue, fontStyle: FontStyle.normal),
-                recognizer: TapGestureRecognizer()..onTap = () { launch('https://github.com/flabbet/WhoIsWho-Game/wiki/Creating-your-own-deck'); }
-              )
-            ]
-          ))
+          RichText(
+              text: TextSpan(
+                  style: TextStyle(
+                      color: Colors.grey, fontStyle: FontStyle.italic),
+                  children: [
+                    TextSpan(
+                        text: "Tip: If you want to create your own deck, follow"),
+                    TextSpan(
+                        text: " this guide",
+                        style: TextStyle(
+                            color: Colors.blue, fontStyle: FontStyle.normal),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            launch(
+                                'https://github.com/flabbet/WhoIsWho-Game/wiki/Creating-your-own-deck');
+                          })
+                  ]))
         ],
       ),
     );
   }
-  static AlertDialog openNewOrganizationPopup(BuildContext context){
-    final _formKey = GlobalKey<FormState>();
+}
 
+class OrganizationPopup extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() => _OrganizationPopupState();
+
+}
+
+class _OrganizationPopupState extends State<OrganizationPopup> {
+  final _formKey = GlobalKey<FormState>();
+  final _orgNameFieldController = TextEditingController();
+  final _orgDeckFieldController = TextEditingController();
+  String responseStr;
+
+  @override
+  Widget build(BuildContext context) {
     return AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text("New Organization"),
-            Form(
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text("New Organization"),
+          Form(
               key: _formKey,
               child: Column(
-                  children: <Widget>[
-                    TextFormField(
-                      decoration: InputDecoration(hintText: "Enter organization name"),
-                      validator: (value){
-                        if(value.isEmpty){
+                children: <Widget>[
+                  TextFormField(
+                      controller: _orgNameFieldController,
+                      decoration:
+                      InputDecoration(hintText: "Enter organization name"),
+                      validator: (value) {
+                        if (value.isEmpty) {
                           return "Enter organization name";
                         }
                         return null;
-                      }
-                    ),
-                    TextFormField(
-                      decoration: InputDecoration(hintText: "Enter organization deck url"),
-                      validator: (value){
-                        if(value.isEmpty){
+                      }),
+                  TextFormField(
+                      controller: _orgDeckFieldController,
+                      decoration: InputDecoration(
+                          hintText: "Enter organization deck url"),
+                      validator: (value) {
+                        if (value.isEmpty) {
                           return "Please enter organization deck url";
-                        }
-                        else if (!Uri.parse(value).isAbsolute){
+                        } else if (!Uri
+                            .parse(value)
+                            .isAbsolute) {
                           return "Please enter correct url";
                         }
                         return null;
+                      }),
+                  FlatButton(
+                    child: Text("Submit"),
+                    onPressed: () async {
+                      if (_formKey.currentState.validate()) {
+                        Dio dio = Dio();
+                        FormData data = FormData.fromMap({
+                          "organization_name": _orgNameFieldController.text,
+                          "organization_deck": _orgDeckFieldController.text
+                        });
+                        await dio
+                            .post("http://138.68.78.158:8080/org/register",
+                            data: data)
+                            .then((response) {
+                          setState(() {
+                            if (response.data.length == 8) {
+                              responseStr =
+                              "Success! Your access code is ${response.data}";
+                            }
+                            else {
+                              responseStr = "${response.data}";
+                            }
+                          });
+                        });
                       }
-                    ),
-                    FlatButton(
-                      child: Text("Submit"),
-                      onPressed: (){
-                        if (_formKey.currentState.validate()){
-
-                        }
-                      },
-                    )
-                  ],
+                    },
+                  ),
+                  responseStr == null ? Text("") : Text(responseStr)
+                ],
               ))
-          ],
-        ),
+        ],
+      ),
     );
   }
+
 }

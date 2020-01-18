@@ -252,7 +252,7 @@ class _GameHomePageState extends State<GameHomePage> {
             onPressed: (){
               showDialog(context: context,
                   builder: (BuildContext context){
-                return Popups.openNewOrganizationPopup(context);
+                return OrganizationPopup();
               }
               );
             },
