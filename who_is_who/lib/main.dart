@@ -62,6 +62,8 @@ class _GameHomePageState extends State<GameHomePage> {
   String logoUrl;
   GoogleSignIn _signIn = GoogleSignIn(scopes: ['email']);
   GoogleSignInAccount _signedInAccount;
+  bool _signedInAccountIsAdmin = false;
+  String organizationDeckUrl;
 
   @override
   void initState() {
@@ -246,8 +248,10 @@ class _GameHomePageState extends State<GameHomePage> {
       GoogleSignInAuthentication auth = await _signedInAccount.authentication;
       var data = await getOrganizationData(auth.accessToken);
       var url = data['deck_url'];
+      organizationDeckUrl = url;
       getDeck(url);
       setState(() {
+        _signedInAccountIsAdmin = data['is_admin'] == 1 ? true : false;
         logoUrl = data['logo_url'];
       });
     } else if (choice == Constants.SignOut) {
@@ -263,6 +267,9 @@ class _GameHomePageState extends State<GameHomePage> {
           builder: (BuildContext context) {
             return ManageUsersPopup(_signedInAccount);
           });
+    }
+    else if (choice == Constants.GetOrganizationDeck){
+      getDeck(organizationDeckUrl);
     }
   }
 
@@ -286,7 +293,7 @@ class _GameHomePageState extends State<GameHomePage> {
           PopupMenuButton<String>(
             onSelected: choiceAction,
             itemBuilder: (BuildContext context) {
-              return Constants.buildChoices(_signedInAccount).map((String choice) {
+              return Constants.buildChoices(_signedInAccount, _signedInAccountIsAdmin).map((String choice) {
                 return PopupMenuItem<String>(
                   value: choice,
                   child: Text(choice),

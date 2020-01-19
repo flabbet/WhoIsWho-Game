@@ -6,17 +6,21 @@ class Constants {
   static const String NewOrganization = 'New Organization';
   static const String SignOut = 'Sign Out';
   static const String ManageUsers = 'Manage Users';
+  static const String GetOrganizationDeck = 'Load organization deck';
 
-  static List<String> buildChoices(GoogleSignInAccount account) {
+  static List<String> buildChoices(GoogleSignInAccount account, bool isAdmin) {
     List<String> choices = <String>[
       Constants.OpenDeck,
       Constants.NewOrganization,
-      Constants.ManageUsers
     ];
     if (account != null) {
       choices.add(Constants.SignOut);
+      choices.add(Constants.GetOrganizationDeck);
     } else {
       choices.add(Constants.SingIn);
+    }
+    if(isAdmin){
+      choices.add(ManageUsers);
     }
     return choices;
   }
