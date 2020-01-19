@@ -10,7 +10,9 @@ import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:who_is_who/Constants.dart';
 import 'package:who_is_who/popups.dart';
 import 'package:http/http.dart' as http;
 import 'package:dio/dio.dart';
@@ -57,22 +59,23 @@ class _GameHomePageState extends State<GameHomePage> {
   GlobalKey<FlipCardState> cardKey = GlobalKey<FlipCardState>();
   String deckPath;
   bool deckIsLoading = false;
+  String logoUrl;
+  GoogleSignIn _signIn = GoogleSignIn(scopes: ['email']);
+  GoogleSignInAccount _signedInAccount;
 
   @override
   void initState() {
-    SchedulerBinding.instance.addPostFrameCallback((_) =>
-        showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return Popups.openDeckPopup(context, getDeck);
-            }));
+    SchedulerBinding.instance.addPostFrameCallback((_) => showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return Popups.openDeckPopup(context, getDeck);
+        }));
     if (_questionsCount > 0) {
       Timer(Duration(milliseconds: 10), updateStopwatch);
       stopwatch.start();
     }
     super.initState();
   }
-
 
   void loadDeckJson(String path) {
     JSONLoader.loadJSON(path).then((json) {
@@ -177,15 +180,6 @@ class _GameHomePageState extends State<GameHomePage> {
     await file.writeAsBytes(bytes);
     return file;
   }
-  
-  Future<String> getDeckUrlFromCode(String accessCode) async{
-    Dio dio = new Dio();
-    FormData form = FormData.fromMap({
-      "access_code": accessCode
-    });
-    var req = await dio.post("http://138.68.78.158:8080/org/getDeck",data: form);
-    return req.data;
-  }
 
   String decompressDeck(List<int> bytes, String path) {
     var archive = ZipDecoder().decodeBytes(bytes);
@@ -198,8 +192,7 @@ class _GameHomePageState extends State<GameHomePage> {
           ..createSync(recursive: true)
           ..writeAsBytesSync(data);
       } else {
-        Directory(path + '/out/' + filename)
-          ..create(recursive: true);
+        Directory(path + '/out/' + filename)..create(recursive: true);
       }
     }
     return rootDirName + "/";
@@ -212,26 +205,20 @@ class _GameHomePageState extends State<GameHomePage> {
 
   void getDeck(String uri) async {
     setState(() {
-          deckIsLoading = true;
+      deckIsLoading = true;
     });
     try {
       var path = (await getTemporaryDirectory()).path;
       File file;
       if (uri.startsWith("http")) {
         file = await downloadDeck(uri, path, "deck.deck");
-      }
-      else if (uri.startsWith("/")) {
+      } else if (uri.startsWith("/")) {
         file = File(uri);
-      }
-      else if (uri.length == 8) {
-        file =
-        await downloadDeck(await getDeckUrlFromCode(uri), path, "deck.deck");
       }
       deckPath = "$path/out/${decompressDeck(await file.readAsBytes(), path)}";
       loadDeckJson("${deckPath}data.json");
       deckIsLoading = false;
-    }
-    catch(ex) {
+    } catch (ex) {
       setState(() {
         deckIsLoading = false;
         String errorMessage = ex.toString().replaceAll("%20", " ");
@@ -241,138 +228,198 @@ class _GameHomePageState extends State<GameHomePage> {
     }
   }
 
+  void choiceAction(String choice) async {
+    if (choice == Constants.OpenDeck) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return Popups.openDeckPopup(context, getDeck);
+          });
+    } else if (choice == Constants.NewOrganization) {
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return OrganizationPopup();
+          });
+    } else if (choice == Constants.SingIn) {
+      _signedInAccount = await _signIn.signIn();
+      GoogleSignInAuthentication auth = await _signedInAccount.authentication;
+      var data = await getOrganizationData(auth.accessToken);
+      var url = data['deck_url'];
+      getDeck(url);
+      setState(() {
+        logoUrl = data['logo_url'];
+      });
+    } else if (choice == Constants.SignOut) {
+      setState(() {
+      _signedInAccount = null;
+      logoUrl = null;
+      _signIn.signOut();
+      });
+    }
+    else if(choice == Constants.ManageUsers){
+      showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return ManageUsersPopup(_signedInAccount);
+          });
+    }
+  }
+
+  Future<dynamic> getOrganizationData(String accessToken) async {
+    Dio dio = Dio();
+    FormData data = FormData.fromMap({"access_token": accessToken});
+    var response =
+        await dio.post("http://138.68.78.158:8080/org/getDeck", data: data);
+    return response.data;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
-          FlatButton(
-            child: Text("New Organization", style: TextStyle(color: Colors.white),),
-            onPressed: (){
-              showDialog(context: context,
-                  builder: (BuildContext context){
-                return OrganizationPopup();
-              }
-              );
+          logoUrl != null
+              ? CircleAvatar(child: Image.network(logoUrl))
+              : Text(""),
+          PopupMenuButton<String>(
+            onSelected: choiceAction,
+            itemBuilder: (BuildContext context) {
+              return Constants.buildChoices(_signedInAccount).map((String choice) {
+                return PopupMenuItem<String>(
+                  value: choice,
+                  child: Text(choice),
+                );
+              }).toList();
             },
           ),
-          FlatButton(
-              child: Text("Open Deck", style: TextStyle(color: Colors.white)),
-              onPressed: () {
-                showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return Popups.openDeckPopup(context, getDeck);
-                    });
-              })
         ],
       ),
       body: Center(
-        child: deckIsLoading ? CircularProgressIndicator() : _questionsCount == 0 ? Text(middleText, style: TextStyle(fontSize: 34),) :Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            LinearProgressIndicator(value: _elapsedTime),
-            Text(
-                (currentPersonIndex + 1).toString() +
-                    "/" +
-                    _questionsCount.toString(),
-                style: TextStyle(fontSize: 18)),
-            FlipCard(
-              key: cardKey,
-              direction: FlipDirection.HORIZONTAL,
-              flipOnTouch: false,
-              front: Container(
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
-                  color: Colors.white,
-                  elevation: 10,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.max,
-                    children: <Widget>[
-                      ClipRRect(
-                          borderRadius: BorderRadius.circular(8.0),
-                          child: cardItems.length > 0
-                              ? Image.file(File(
-                              deckPath + "images/" +
-                                  cardItems[currentPersonIndex].fileName),
-                              width: 300,
-                              height: 450,
-                              fit: BoxFit.cover)
-                              : null),
-                      FlatButton(
-                        child: const Text("Do you know who is that?"),
-                        onPressed: () {},
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              back: Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15)),
-                color: Color(0xFFd55563),
-                elevation: 10,
-                child: Container(
-                  width: 300,
-                  height: 450,
-                  child: Column(
+        child: deckIsLoading
+            ? CircularProgressIndicator()
+            : _questionsCount == 0
+                ? Text(
+                    middleText,
+                    style: TextStyle(fontSize: 34),
+                  )
+                : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: <Widget>[
+                      LinearProgressIndicator(value: _elapsedTime),
                       Text(
-                          tappedAgain ? cardItems[currentPersonIndex].name : "",
-                          style: TextStyle(fontSize: 34, color: Colors.white), textAlign: TextAlign.center),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: MarkdownBody(
-                          styleSheet: MarkdownStyleSheet.fromTheme(ThemeData(textTheme: Theme.of(context).textTheme.apply(bodyColor: Colors.white70, fontSizeDelta: 8))),
-                          data:
-                            tappedAgain
-                                ? cardItems[currentPersonIndex].description
-                                : "",
-                      ))
+                          (currentPersonIndex + 1).toString() +
+                              "/" +
+                              _questionsCount.toString(),
+                          style: TextStyle(fontSize: 18)),
+                      FlipCard(
+                        key: cardKey,
+                        direction: FlipDirection.HORIZONTAL,
+                        flipOnTouch: false,
+                        front: Container(
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15)),
+                            color: Colors.white,
+                            elevation: 10,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.max,
+                              children: <Widget>[
+                                ClipRRect(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    child: cardItems.length > 0
+                                        ? Image.file(
+                                            File(deckPath +
+                                                "images/" +
+                                                cardItems[currentPersonIndex]
+                                                    .fileName),
+                                            width: 300,
+                                            height: 450,
+                                            fit: BoxFit.cover)
+                                        : null),
+                                FlatButton(
+                                  child: const Text("Do you know who is that?"),
+                                  onPressed: () {},
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        back: Card(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15)),
+                          color: Color(0xFFd55563),
+                          elevation: 10,
+                          child: Container(
+                            width: 300,
+                            height: 450,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: <Widget>[
+                                Text(
+                                    tappedAgain
+                                        ? cardItems[currentPersonIndex].name
+                                        : "",
+                                    style: TextStyle(
+                                        fontSize: 34, color: Colors.white),
+                                    textAlign: TextAlign.center),
+                                Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: MarkdownBody(
+                                      styleSheet: MarkdownStyleSheet.fromTheme(
+                                          ThemeData(
+                                              textTheme: Theme.of(context)
+                                                  .textTheme
+                                                  .apply(
+                                                      bodyColor: Colors.white70,
+                                                      fontSizeDelta: 8))),
+                                      data: tappedAgain
+                                          ? cardItems[currentPersonIndex]
+                                              .description
+                                          : "",
+                                    ))
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      ButtonBar(
+                        alignment: MainAxisAlignment.center,
+                        children: tappedAgain
+                            ? <Widget>[
+                                FlatButton(
+                                  onPressed: () {
+                                    _switchQuestion(false);
+                                  },
+                                  child: Text("Next question",
+                                      style: TextStyle(fontSize: 18)),
+                                  color: Colors.blue,
+                                  textColor: Colors.white,
+                                )
+                              ]
+                            : <Widget>[
+                                FlatButton(
+                                  color: Colors.red,
+                                  textColor: Colors.white,
+                                  child: Text("No"),
+                                  onPressed: () {
+                                    _switchQuestion(false);
+                                  },
+                                ),
+                                FlatButton(
+                                  color: Colors.green,
+                                  textColor: Colors.white,
+                                  child: Text("Yes"),
+                                  onPressed: () {
+                                    _switchQuestion(true);
+                                  },
+                                )
+                              ],
+                      )
                     ],
                   ),
-                ),
-              ),
-            ),
-            ButtonBar(
-              alignment: MainAxisAlignment.center,
-              children: tappedAgain
-                  ? <Widget>[
-                FlatButton(
-                  onPressed: () {
-                    _switchQuestion(false);
-                  },
-                  child: Text("Next question",
-                      style: TextStyle(fontSize: 18)),
-                  color: Colors.blue,
-                  textColor: Colors.white,
-                )
-              ]
-                  : <Widget>[
-                FlatButton(
-                  color: Colors.red,
-                  textColor: Colors.white,
-                  child: Text("No"),
-                  onPressed: () {
-                    _switchQuestion(false);
-                  },
-                ),
-                FlatButton(
-                  color: Colors.green,
-                  textColor: Colors.white,
-                  child: Text("Yes"),
-                  onPressed: () {
-                    _switchQuestion(true);
-                  },
-                )
-              ],
-            )
-          ],
-        ),
       ),
     );
   }

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1033998761754",
+    "firebase_url": "https://whoiswho-265610.firebaseio.com",
+    "project_id": "whoiswho-265610",
+    "storage_bucket": "whoiswho-265610.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1033998761754:android:759c46eab2d98a08e036a3",
+        "android_client_info": {
+          "package_name": "com.flabbet.who_is_who"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1033998761754-fmgpjrirc4kmpidjp77u69v2vfpt40rn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flabbet.who_is_who",
+            "certificate_hash": "537c8fd752cb22320e1ff2b05606804fbd33b772"
+          }
+        },
+        {
+          "client_id": "1033998761754-g5ev2glpssk00v8engnv85s7qp75t16l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN2AHy1G_18_S6x4x9ZFe_NJKdlftz4hI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1033998761754-g5ev2glpssk00v8engnv85s7qp75t16l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
