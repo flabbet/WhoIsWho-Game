@@ -24,4 +24,7 @@ class Constants {
     }
     return choices;
   }
+
+  static const List<String> forbiddenDomains = <String>[
+    "gmail.com", "outlook.com", "Yahoo.com", "iCloud.com", "aol.com", "Mail.com"];
 }

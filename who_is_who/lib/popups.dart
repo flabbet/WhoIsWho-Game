@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:who_is_who/Constants.dart';
 
 class Popups {
   static AlertDialog openDeckPopup(BuildContext context, Function onOpenDeck) {
@@ -108,6 +109,7 @@ class _OrganizationPopupState extends State<OrganizationPopup> {
   final _orgDeckFieldController = TextEditingController();
   final _orgLogoFieldController = TextEditingController();
   final _authorEmailController = TextEditingController();
+  final _orgDomainController = TextEditingController();
   String responseStr;
 
   @override
@@ -163,9 +165,27 @@ class _OrganizationPopupState extends State<OrganizationPopup> {
                           return "Please enter email";
                         } else if (!RegExp(
                                 r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])?)*$")
-                            .hasMatch(value)) {
+                            .hasMatch(value.trim())) {
                           return "Please enter valid email";
                         }
+                        return null;
+                      }),
+                  TextFormField(
+                      controller: _orgDomainController,
+                      decoration: InputDecoration(hintText: "Enter organization domain"),
+                      validator: (value) {
+                        if (value.isNotEmpty && value.split(".").length != 2) {
+                          return "Please enter valid domain";
+                        }
+                        else if (value.split('.')[0].isEmpty || value.split('.')[1].isEmpty){
+                          return "Please enter valid domain";
+                        }
+                        for(int i = 0; i < Constants.forbiddenDomains.length; i++){
+                          if (Constants.forbiddenDomains[i].toLowerCase() == value.toLowerCase()){
+                            return "This domain is forbidden.";
+                          }
+                        }
+
                         return null;
                       }),
                   FlatButton(
@@ -179,7 +199,8 @@ class _OrganizationPopupState extends State<OrganizationPopup> {
                           "organization_name": _orgNameFieldController.text,
                           "organization_deck": _orgDeckFieldController.text,
                           "organization_logo": _orgLogoFieldController.text,
-                          "author_email": _authorEmailController.text
+                          "author_email": _authorEmailController.text.trim(),
+                          "domain": _orgDomainController.text
                         });
                         await dio
                             .post("http://138.68.78.158:8080/org/register",
@@ -207,11 +228,9 @@ class _OrganizationPopupState extends State<OrganizationPopup> {
 
 class ManageUsersPopup extends StatefulWidget {
 
-  GoogleSignInAccount _account;
+  final GoogleSignInAccount _account;
 
-  ManageUsersPopup(  GoogleSignInAccount account){
-    _account = account;
-  }
+  ManageUsersPopup(this._account);
 
   @override
   State<StatefulWidget> createState() => _ManageUsersPopupState(_account);
