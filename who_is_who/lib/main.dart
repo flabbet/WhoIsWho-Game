@@ -11,14 +11,15 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/drive/v3.dart' as driveApi;
 import 'package:path_provider/path_provider.dart';
 import 'package:who_is_who/Constants.dart';
 import 'package:who_is_who/popups.dart';
 import 'package:http/http.dart' as http;
-import 'package:dio/dio.dart';
 
 import 'JSONLoader.dart';
 import 'CardItem.dart';
+import 'google_http_client.dart';
 
 void main() => runApp(WhoIsWhoApp());
 
@@ -59,11 +60,11 @@ class _GameHomePageState extends State<GameHomePage> {
   GlobalKey<FlipCardState> cardKey = GlobalKey<FlipCardState>();
   String deckPath;
   bool deckIsLoading = false;
-  String logoUrl;
-  GoogleSignIn _signIn = GoogleSignIn(scopes: ['email']);
+  GoogleSignIn _signIn = GoogleSignIn(
+      scopes: ['email', 'https://www.googleapis.com/auth/drive.readonly']);
   GoogleSignInAccount _signedInAccount;
-  bool _signedInAccountIsAdmin = false;
   String organizationDeckUrl;
+  String organizationLogoFileName;
 
   @override
   void initState() {
@@ -230,6 +231,17 @@ class _GameHomePageState extends State<GameHomePage> {
     }
   }
 
+  Future<void> downloadDeckFromGoogleDrive(String fileId) async {
+    var client = GoogleHttpClient(await _signedInAccount.authHeaders);
+    var drive = driveApi.DriveApi(client);
+    final deckFile = await drive.files
+        .get(fileId, downloadOptions: driveApi.DownloadOptions.FullMedia);
+    var path = (await getTemporaryDirectory()).path + "deck.deck";
+    File file = File(path);
+    await file.writeAsBytes(await deckFile.stream.toBytes());
+    getDeck(path);
+  }
+
   void choiceAction(String choice) async {
     if (choice == Constants.OpenDeck) {
       showDialog(
@@ -237,48 +249,32 @@ class _GameHomePageState extends State<GameHomePage> {
           builder: (BuildContext context) {
             return Popups.openDeckPopup(context, getDeck);
           });
-    } else if (choice == Constants.NewOrganization) {
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return OrganizationPopup();
-          });
     } else if (choice == Constants.SingIn) {
       _signedInAccount = await _signIn.signIn();
-      GoogleSignInAuthentication auth = await _signedInAccount.authentication;
-      var data = await getOrganizationData(auth.accessToken);
-      var url = data['deck_url'];
-      organizationDeckUrl = url;
-      getDeck(url);
-      setState(() {
-        _signedInAccountIsAdmin = data['is_admin'] == 1 ? true : false;
-        logoUrl = data['logo_url'];
-      });
+      final json = jsonDecode(
+          await DefaultAssetBundle.of(context).loadString("assets/org.json"));
+      if (_signedInAccount.email.split('@')[1].toLowerCase() ==
+          json['domain']) {
+        var fileId = json['file_id'];
+        if (fileId != null) {
+          await downloadDeckFromGoogleDrive(fileId);
+        } else {
+          organizationDeckUrl = json['deck_url'];
+          getDeck(organizationDeckUrl);
+        }
+        organizationLogoFileName = "assets/logo.png";
+      } else {
+        setState(() {
+          middleText = "Not authorized.";
+        });
+      }
     } else if (choice == Constants.SignOut) {
       setState(() {
-      _signedInAccount = null;
-      logoUrl = null;
-      _signIn.signOut();
+        _signedInAccount = null;
+        _signIn.signOut();
+        organizationLogoFileName = null;
       });
     }
-    else if(choice == Constants.ManageUsers){
-      showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return ManageUsersPopup(_signedInAccount);
-          });
-    }
-    else if (choice == Constants.GetOrganizationDeck){
-      getDeck(organizationDeckUrl);
-    }
-  }
-
-  Future<dynamic> getOrganizationData(String accessToken) async {
-    Dio dio = Dio();
-    FormData data = FormData.fromMap({"access_token": accessToken});
-    var response =
-        await dio.post("http://138.68.78.158:8080/org/getDeck", data: data);
-    return response.data;
   }
 
   @override
@@ -287,13 +283,14 @@ class _GameHomePageState extends State<GameHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
-          logoUrl != null
-              ? CircleAvatar(child: Image.network(logoUrl))
+          organizationLogoFileName != null
+              ? CircleAvatar(child: Image.asset(organizationLogoFileName))
               : Text(""),
           PopupMenuButton<String>(
             onSelected: choiceAction,
             itemBuilder: (BuildContext context) {
-              return Constants.buildChoices(_signedInAccount, _signedInAccountIsAdmin).map((String choice) {
+              return Constants.buildChoices(_signedInAccount)
+                  .map((String choice) {
                 return PopupMenuItem<String>(
                   value: choice,
                   child: Text(choice),

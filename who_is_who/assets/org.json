@@ -1,0 +1,5 @@
+{
+  "file_id": "enter file id on google drive, it can be found by right clicking on file and copying sharing link, last part of url is id",
+  "deck_url": "use this if not using google drive as deck storage service.",
+  "domain": "enter organization domain that is used in emails"
+}
