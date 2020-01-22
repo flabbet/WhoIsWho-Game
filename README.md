@@ -11,6 +11,8 @@ Open Android Studio or any text editor and navigate to assets folder, move your 
 
 Logo size doesn't matter that much however shape should be square. You can use sizes like 100x100, 300x300 etc. But exceeding 500x500 is not necessary, since you won't see that many details anyway.
 
+Sample logo can be found in assets folder
+
 
 ## Data
 Now open `org.json`
