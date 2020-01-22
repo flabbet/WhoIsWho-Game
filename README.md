@@ -1,4 +1,6 @@
+# Who is Who game
 
+Who is who is a simple game that is used to learn names with simple flashcards system.
 
 # Adding support for organization decks
 
