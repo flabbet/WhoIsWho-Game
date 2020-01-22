@@ -284,7 +284,7 @@ class _GameHomePageState extends State<GameHomePage> {
         title: Text(widget.title),
         actions: <Widget>[
           organizationLogoFileName != null
-              ? CircleAvatar(child: Image.asset(organizationLogoFileName))
+              ? CircleAvatar(child: ClipOval(child: Image.asset(organizationLogoFileName)))
               : Text(""),
           PopupMenuButton<String>(
             onSelected: choiceAction,
