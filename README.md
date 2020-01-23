@@ -27,6 +27,14 @@ If you don't use Google Drive, then fill `deck_url` field with downloadable url 
 
 Make sure to use either `file_id` or `deck_url`, not both. Delete one you are not using.
 
+# Creating firebase auth
+
+Go to https://console.developers.google.com/ and create a new app. Go to APIs and enable `Google Drive API`.
+Go to https://firebase.google.com/ and create new app. Enter the same name as in Google Developer Console.
+
+Go to authentication and select login methods. Turn on Google.
+Come back to project overview and on top add a Android device and follow the prompt. Important, make sure to add SHA1 key.
+
 # Creating your own deck 
 
 See [this detailed guide](https://github.com/flabbet/WhoIsWho-Game/wiki/Creating-your-own-deck)
