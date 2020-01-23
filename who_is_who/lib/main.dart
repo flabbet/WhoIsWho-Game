@@ -68,11 +68,6 @@ class _GameHomePageState extends State<GameHomePage> {
 
   @override
   void initState() {
-    SchedulerBinding.instance.addPostFrameCallback((_) => showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return Popups.openDeckPopup(context, getDeck);
-        }));
     if (_questionsCount > 0) {
       Timer(Duration(milliseconds: 10), updateStopwatch);
       stopwatch.start();
